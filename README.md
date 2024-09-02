@@ -1,0 +1,1 @@
+Stamina regeneraten while sprinting
