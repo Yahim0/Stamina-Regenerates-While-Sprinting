@@ -89,19 +89,26 @@ class SprintRegenHook {
     static inline REL::Relocation<decltype(getSprintStaminaDrain)> oldGetSprintStaminaDrain;
 
 public:
-    static void hook() {
-        oldGetEquippedWeight = SKSE::GetTrampoline().write_call<5>(REL::ID(38022).address() + 0xc1, getEquippedWeight);
-        oldGetSprintStaminaDrain = SKSE::GetTrampoline().write_call<5>(REL::ID(38022).address() + 0xc9, getSprintStaminaDrain);
+    static void hook(int address) {
+        oldGetEquippedWeight = SKSE::GetTrampoline().write_call<5>(REL::ID(address).address() + 0xc1, getEquippedWeight);
+        oldGetSprintStaminaDrain = SKSE::GetTrampoline().write_call<5>(REL::ID(address).address() + 0xc9, getSprintStaminaDrain);
     }
 };
 
 extern "C" DLLEXPORT bool SKSEPlugin_Load(const LoadInterface* skse) {
     initializeLogging();
-
     logger::info("'{} {}' is loading, game version '{}'...", Plugin::Name, Plugin::VersionString, REL::Module::get().version().string());
     Init(skse);
     SKSE::AllocTrampoline(1 << 10);
-    SprintRegenHook::hook();
+    SKSE::GetMessagingInterface()->RegisterListener([](SKSE::MessagingInterface::Message* message) {
+        if (message->type == SKSE::MessagingInterface::kDataLoaded) {
+            int address = 38022;
+            if (REL::Module::IsSE()) {
+                address = 36994;
+            }
+            SprintRegenHook::hook(address);
+        }
+    });
 
     logger::info("{} has finished loading.", Plugin::Name);
     return true;
