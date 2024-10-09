@@ -62,7 +62,7 @@ class SprintRegenHook {
         } else {
             totalRate = rate * a->AsActorValueOwner()->GetActorValue(RE::ActorValue::kStamina);
         }
-        if (totalRate > 0) {
+        if (totalRate > 0.0f) {
             if (a->IsInCombat()){
                 totalRate *= RE::GameSettingCollection::GetSingleton()->GetSetting("fCombatStaminaRegenRateMult")->GetFloat();
             }
@@ -78,7 +78,16 @@ class SprintRegenHook {
         float w = oldGetEquippedWeight(a);
         float drain = oldGetSprintStaminaDrain(w, RE::GetSecondsSinceLastFrame());
         float rate = getRate(a) * RE::GetSecondsSinceLastFrame();
-        return -rate + drain;
+        return std::max(0.0f, -rate + drain);
+    }
+
+    static float getEquippedWeightBandB(RE::Actor* a) {
+        if (a == nullptr) {
+            return 0;
+        }
+        float t = RE::GetSecondsSinceLastFrame();
+        float rate = getRate(a) * t;
+        return std::max(-8.0f * t, -rate);
     }
 
     static float getSprintStaminaDrain(float weight, float) {
@@ -93,6 +102,10 @@ public:
         oldGetEquippedWeight = SKSE::GetTrampoline().write_call<5>(REL::ID(38022).address() + 0xc1, getEquippedWeight);
         oldGetSprintStaminaDrain = SKSE::GetTrampoline().write_call<5>(REL::ID(38022).address() + 0xc9, getSprintStaminaDrain);
     }
+    static void hookBandB() {
+        oldGetEquippedWeight = SKSE::GetTrampoline().write_call<5>(REL::ID(38022).address() + 0xc1, getEquippedWeightBandB);
+        oldGetSprintStaminaDrain = SKSE::GetTrampoline().write_call<5>(REL::ID(38022).address() + 0xc9, getSprintStaminaDrain);
+    }
 };
 
 extern "C" DLLEXPORT bool SKSEPlugin_Load(const LoadInterface* skse) {
@@ -101,7 +114,16 @@ extern "C" DLLEXPORT bool SKSEPlugin_Load(const LoadInterface* skse) {
     logger::info("'{} {}' is loading, game version '{}'...", Plugin::Name, Plugin::VersionString, REL::Module::get().version().string());
     Init(skse);
     SKSE::AllocTrampoline(1 << 10);
-    SprintRegenHook::hook();
+    SKSE::GetMessagingInterface()->RegisterListener([](SKSE::MessagingInterface::Message* message) {
+        if (message->type == SKSE::MessagingInterface::kDataLoaded) {
+            if (RE::TESDataHandler::GetSingleton()->LookupLoadedLightModByName("BladeAndBlunt.esp") != nullptr) {
+                logger::info("BladeAndBlunt.esp detected.");
+                SprintRegenHook::hookBandB();
+            } else {
+                SprintRegenHook::hook();
+            }
+        }
+    });
 
     logger::info("{} has finished loading.", Plugin::Name);
     return true;
