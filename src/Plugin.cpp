@@ -98,13 +98,13 @@ class SprintRegenHook {
     static inline REL::Relocation<decltype(getSprintStaminaDrain)> oldGetSprintStaminaDrain;
 
 public:
-    static void hook() {
-        oldGetEquippedWeight = SKSE::GetTrampoline().write_call<5>(REL::ID(38022).address() + 0xc1, getEquippedWeight);
-        oldGetSprintStaminaDrain = SKSE::GetTrampoline().write_call<5>(REL::ID(38022).address() + 0xc9, getSprintStaminaDrain);
+    static void hook(int address) {
+        oldGetEquippedWeight = SKSE::GetTrampoline().write_call<5>(REL::ID(address).address() + 0xc1, getEquippedWeight);
+        oldGetSprintStaminaDrain = SKSE::GetTrampoline().write_call<5>(REL::ID(address).address() + 0xc9, getSprintStaminaDrain);
     }
-    static void hookBandB() {
-        oldGetEquippedWeight = SKSE::GetTrampoline().write_call<5>(REL::ID(38022).address() + 0xc1, getEquippedWeightBandB);
-        oldGetSprintStaminaDrain = SKSE::GetTrampoline().write_call<5>(REL::ID(38022).address() + 0xc9, getSprintStaminaDrain);
+    static void hookBandB(int address) {
+        oldGetEquippedWeight = SKSE::GetTrampoline().write_call<5>(REL::ID(address).address() + 0xc1, getEquippedWeightBandB);
+        oldGetSprintStaminaDrain = SKSE::GetTrampoline().write_call<5>(REL::ID(address).address() + 0xc9, getSprintStaminaDrain);
     }
 };
 
@@ -116,11 +116,15 @@ extern "C" DLLEXPORT bool SKSEPlugin_Load(const LoadInterface* skse) {
     SKSE::AllocTrampoline(1 << 10);
     SKSE::GetMessagingInterface()->RegisterListener([](SKSE::MessagingInterface::Message* message) {
         if (message->type == SKSE::MessagingInterface::kDataLoaded) {
+            int address = 38022;
+            if (REL::Module::IsSE()) {
+                address = 36994;
+            }
             if (RE::TESDataHandler::GetSingleton()->LookupLoadedLightModByName("BladeAndBlunt.esp") != nullptr) {
                 logger::info("BladeAndBlunt.esp detected.");
-                SprintRegenHook::hookBandB();
+                SprintRegenHook::hookBandB(address);
             } else {
-                SprintRegenHook::hook();
+                SprintRegenHook::hook(address);
             }
         }
     });
