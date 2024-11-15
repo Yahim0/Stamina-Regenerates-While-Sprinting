@@ -1,31 +1,110 @@
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.30)
+message("Using toolchain file ${CMAKE_TOOLCHAIN_FILE}.")
 
+# -------------------------------------------------- Setup project ----------------------------------------------------
 project(
-        StaminaRegenWhileSprint
-        VERSION 1.0.0
-        LANGUAGES CXX)
-set(PROJECT_LICENSE "MIT")
-set(PROJECT_FRIENDLY_NAME ${PROJECT_NAME})
-set(PROJECT_LONG_NAME "Template CommonLibSSE-NG")
-set(PROJECT_DESCRIPTION ${PROJECT_LONG_NAME})
-set(PROJECT_COPYRIGHT "Copyright")
+  StaminaRegensWhileSprinting
+  VERSION 1.0.0
+  LANGUAGES CXX
+)
 
-list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
-include(GNUInstallDirs)
-include(addpluginsources)
-include(pluginconfig)
-include(plugintarget)
-include(pluginpackage)
-include("${PROJECT_SOURCE_DIR}/local.cmake" OPTIONAL)
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_OPTIMIZE_DEPENDENCIES ON)
 
-######## dependencies
-set(Boost_NO_WARN_NEW_VERSIONS 1)
-set(Boost_USE_STATIC_LIBS ON)
-set(Boost_USE_MULTITHREADED  ON)
-find_package(Boost REQUIRED COMPONENTS)
-if(Boost_FOUND)
-    target_link_libraries(${PROJECT_NAME} PRIVATE ${Boost_LIBRARIES})
-    target_include_directories(${PROJECT_NAME} PRIVATE ${Boost_INCLUDE_DIRS})
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/version.rc.in
+  ${CMAKE_CURRENT_BINARY_DIR}/version.rc
+  @ONLY
+)
+
+# -------------------------------------------------- Add sources ------------------------------------------------------
+file(
+  GLOB_RECURSE
+  sources
+  CONFIGURE_DEPENDS
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
+  ${CMAKE_CURRENT_BINARY_DIR}/version.rc
+)
+list(REMOVE_ITEM sources ${CMAKE_CURRENT_SOURCE_DIR}/include/PCH.h)
+
+source_group(
+  TREE ${CMAKE_CURRENT_SOURCE_DIR}
+  FILES ${sources}
+)
+
+# -------------------------------------------------- Add dependencies -------------------------------------------------
+find_package(CommonLibSSE CONFIG REQUIRED)
+
+find_path(SIMPLEINI_INCLUDE_DIRS SimpleIni.h)
+
+# -------------------------------------------------- Setup DLL --------------------------------------------------------
+add_commonlibsse_plugin(
+  ${PROJECT_NAME}
+  AUTHOR Yahim0
+  SOURCES ${sources}
+)
+
+add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
+
+target_include_directories(
+  ${PROJECT_NAME}
+  PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${SIMPLEINI_INCLUDE_DIRS}
+)
+
+target_precompile_headers(
+  ${PROJECT_NAME}
+  PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/PCH.h
+  ${SIMPLEINI_INCLUDE_DIRS}/SimpleIni.h
+)
+
+target_compile_options(
+  ${PROJECT_NAME}
+  PRIVATE
+  /cgthreads8 /diagnostics:caret /jumptablerdata /MP /W4 /Zc:__cplusplus /Zc:enumTypes /Zc:inline /Zc:templateScope
+)
+
+if(CMAKE_BUILD_TYPE STREQUAL RelWithDebInfo)
+  target_compile_options(
+    ${PROJECT_NAME}
+    PRIVATE
+    /fp:fast /Ob3 /GL /GR- /Gw /Qpar
+  )
+  target_link_options(
+    ${PROJECT_NAME}
+    PRIVATE
+    /CGTHREADS:8 /INCREMENTAL:NO /OPT:REF,ICF=4
+  )
 endif()
 
+# -------------------------------------------------- Post-build -------------------------------------------------------
+if(CMAKE_BUILD_TYPE STREQUAL Debug)
+  set(BUILD_NAME Debug)
+else()
+  set(BUILD_NAME Release)
+endif()
 
+add_custom_command(
+  TARGET ${PROJECT_NAME}
+  POST_BUILD
+  COMMAND
+  ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_SOURCE_DIR}/contrib/Plugin${BUILD_NAME}/skse/plugins
+  COMMAND
+  ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${PROJECT_NAME}> ${CMAKE_CURRENT_SOURCE_DIR}/contrib/Plugin${BUILD_NAME}/skse/plugins
+  COMMAND
+  ${CMAKE_COMMAND} -E copy $<TARGET_PDB_FILE:${PROJECT_NAME}> ${CMAKE_CURRENT_SOURCE_DIR}/contrib/Plugin${BUILD_NAME}/skse/plugins
+  COMMAND
+  ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/contrib/Config/${PROJECT_NAME}.ini ${CMAKE_CURRENT_SOURCE_DIR}/contrib/Plugin${BUILD_NAME}/skse/plugins
+)
+
+file(GLOB_RECURSE OUTPUT_DLLS ${CMAKE_CURRENT_SOURCE_DIR}/contrib/*.dll)
+file(GLOB_RECURSE OUTPUT_PDBS ${CMAKE_CURRENT_SOURCE_DIR}/contrib/*.pdb)
+
+set_property(
+  TARGET ${PROJECT_NAME}
+  APPEND PROPERTY ADDITIONAL_CLEAN_FILES ${OUTPUT_DLLS} ${OUTPUT_PDBS}
+)

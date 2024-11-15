@@ -1,21 +1,29 @@
 {
   "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
-  "name": "skse-clibng-template",
-  "version-string": "0.0.1",
-  "description": "SKSE CommonLibSSE-NG Template",
-  "homepage": "https://github.com/epinter/skse-clibng-template",
-  "features": {
-    "plugin": {
-      "description": "SKSE plugin",
-      "dependencies": [
-        "commonlibsse-ng",
-        "spdlog",
-        "boost-algorithm"
-      ]
-    }
-  },
-  "default-features": [
-    "plugin"
+  "dependencies": [
+    "commonlibsse-ng",
+    "simpleini"
   ],
-  "builtin-baseline": "a4275b7eee79fb24ec2e135481ef5fce8b41c339"
+  "builtin-baseline": "9b5cb8e554487f3edb5d50b80188883846f81e14",
+  "vcpkg-configuration": {
+    "registries": [
+      {
+        "kind": "git",
+        "baseline": "6f1966bf5fdddeafd0e77d5766acbc53fade5996",
+        "repository": "https://github.com/ThirdEyeSqueegee/CommonLibSSE-NG-vcpkg",
+        "packages": [
+          "commonlibsse-ng"
+        ]
+      },
+      {
+        "kind": "git",
+        "baseline": "f77b98856f76ef2b57928d8f62b3aee497fd6ad8",
+        "repository": "https://github.com/ThirdEyeSqueegee/vcpkg-ports",
+        "packages": [
+          "openvr",
+          "spdlog"
+        ]
+      }
+    ]
+  }
 }
