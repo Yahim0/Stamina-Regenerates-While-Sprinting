@@ -1,5 +1,5 @@
 ######## target
-add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES})
+add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES} "../src/Config.h" "../src/Config.cpp")
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_${CMAKE_CXX_STANDARD})
 
 find_path(CommonLibSSEPath "include/REL/Relocation.h"

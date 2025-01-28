@@ -3,8 +3,9 @@ using namespace SKSE::log;
 using namespace SKSE::stl;
 
 #include "Plugin.h"
+#include "Config.h"
 
-namespace plugin {
+namespace OblivionSprint {
     std::optional<std::filesystem::path> getLogDirectory() {
         using namespace std::filesystem;
         PWSTR buf;
@@ -50,9 +51,9 @@ namespace plugin {
     }
 }  // namespace plugin
 
-using namespace plugin;
+using namespace OblivionSprint;
 
-class SprintRegenHook {
+class OblivionSprintHook {
     static inline float getRate(RE::Actor* a) {
         float totalRate;
         float rate =
@@ -71,27 +72,70 @@ class SprintRegenHook {
         return totalRate;
     }
 
-    static float getEquippedWeight(RE::Actor* a) {
+    static float getEquippedWeightRegen(RE::Actor* actor) {
+        if (actor == nullptr) {
+            return 0;
+        }
+        float drain = oldGetSprintStaminaDrain(oldGetEquippedWeight(actor), RE::GetSecondsSinceLastFrame());
+        float rate = getRate(actor) * RE::GetSecondsSinceLastFrame();
+        logger::info("rate: {}, regenMult: {}, rateMult: {}, drain: {}, wholeDrain: {}", rate, Config::regenMultiplier, rate * Config::regenMultiplier, drain, -rate * Config::regenMultiplier + drain);
+        return -rate * Config::regenMultiplier + drain;
+    }
+
+    static float getEquippedWeightCompensates(RE::Actor* actor) {
+        if (actor == nullptr) {
+            return 0;
+        }
+        float drain = oldGetSprintStaminaDrain(oldGetEquippedWeight(actor), RE::GetSecondsSinceLastFrame());
+        float rate = getRate(actor) * RE::GetSecondsSinceLastFrame();
+        return std::max(0.0f, -rate * Config::regenMultiplier + drain);
+    }
+
+    static float getEquippedWeightCompBandB(RE::Actor* actor) {
+        if (actor == nullptr) {
+            return 0;
+        }
+        float drain = 8.0f * RE::GetSecondsSinceLastFrame();
+        float rate = getRate(actor) * RE::GetSecondsSinceLastFrame();
+        return std::max(0.0f, -rate * Config::regenMultiplier + drain);
+    }
+
+    static float getEquippedWeightCompImperious(RE::Actor* a) {
         if (a == nullptr) {
             return 0;
         }
-        float w = oldGetEquippedWeight(a);
-        float drain = oldGetSprintStaminaDrain(w, RE::GetSecondsSinceLastFrame());
+        float drain = oldGetSprintStaminaDrain(oldGetEquippedWeight(a), RE::GetSecondsSinceLastFrame());
+        if (strcmp(RE::PlayerCharacter::GetSingleton()->GetRace()->GetFullName(), "Kahjiit")) {
+            drain = drain + 15;
+        }
         float rate = getRate(a) * RE::GetSecondsSinceLastFrame();
-        return -rate + drain;
+        return std::max(0.0f, -rate + drain);
     }
+
 
     static float getSprintStaminaDrain(float weight, float) {
         return weight;
     }
 
-    static inline REL::Relocation<decltype(getEquippedWeight)> oldGetEquippedWeight;
+    static inline REL::Relocation<decltype(getEquippedWeightRegen)> oldGetEquippedWeight;
     static inline REL::Relocation<decltype(getSprintStaminaDrain)> oldGetSprintStaminaDrain;
 
 public:
-    static void hook(int address) {
-        oldGetEquippedWeight = SKSE::GetTrampoline().write_call<5>(REL::ID(address).address() + 0xc1, getEquippedWeight);
-        oldGetSprintStaminaDrain = SKSE::GetTrampoline().write_call<5>(REL::ID(address).address() + 0xc9, getSprintStaminaDrain);
+    static void hookRegen() {
+        oldGetEquippedWeight = SKSE::GetTrampoline().write_call<5>(REL::ID(RELOCATION_ID(36994, 38022)).address() + 0xc1, getEquippedWeightRegen);
+        oldGetSprintStaminaDrain = SKSE::GetTrampoline().write_call<5>(REL::ID(RELOCATION_ID(36994, 38022)).address() + 0xc9, getSprintStaminaDrain);
+    }
+    static void hookCompensates() {
+        oldGetEquippedWeight = SKSE::GetTrampoline().write_call<5>(REL::ID(RELOCATION_ID(36994, 38022)).address() + 0xc1, getEquippedWeightCompensates);
+        oldGetSprintStaminaDrain = SKSE::GetTrampoline().write_call<5>(REL::ID(RELOCATION_ID(36994, 38022)).address() + 0xc9, getSprintStaminaDrain);
+    }
+    static void hookCompBandB() {
+        oldGetEquippedWeight = SKSE::GetTrampoline().write_call<5>(REL::ID(RELOCATION_ID(36994, 38022)).address() + 0xc1, getEquippedWeightCompBandB);
+        oldGetSprintStaminaDrain = SKSE::GetTrampoline().write_call<5>(REL::ID(RELOCATION_ID(36994, 38022)).address() + 0xc9, getSprintStaminaDrain);
+    }
+    static void hookCompImperious() {
+        oldGetEquippedWeight = SKSE::GetTrampoline().write_call<5>(REL::ID(RELOCATION_ID(36994, 38022)).address() + 0xc1, getEquippedWeightCompImperious);
+        oldGetSprintStaminaDrain = SKSE::GetTrampoline().write_call<5>(REL::ID(RELOCATION_ID(36994, 38022)).address() + 0xc9, getSprintStaminaDrain);
     }
 };
 
@@ -102,11 +146,21 @@ extern "C" DLLEXPORT bool SKSEPlugin_Load(const LoadInterface* skse) {
     SKSE::AllocTrampoline(1 << 10);
     SKSE::GetMessagingInterface()->RegisterListener([](SKSE::MessagingInterface::Message* message) {
         if (message->type == SKSE::MessagingInterface::kDataLoaded) {
-            int address = 38022;
-            if (REL::Module::IsSE()) {
-                address = 36994;
+            Config::loadConfig();
+            if (Config::staminaRegenWhileSprint) {
+                OblivionSprintHook::hookRegen();
             }
-            SprintRegenHook::hook(address);
+            else {
+                if (RE::TESDataHandler::GetSingleton()->LookupLoadedLightModByName("BladeAndBlunt.esp")) {
+                    logger::info("BladeAndBlunt.esp detected.");
+                    OblivionSprintHook::hookCompBandB();
+                }
+                else if (RE::TESDataHandler::GetSingleton()->LookupLoadedModByName("Imperious - Races of Skyrim.esp")) {
+                    logger::info("Imperious - Races of Skyrim.esp detected.");
+                    OblivionSprintHook::hookCompImperious();
+                }
+                OblivionSprintHook::hookCompensates();
+            }
         }
     });
 

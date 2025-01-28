@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
-  "name": "skse-clibng-template",
+  "name": "oblivion-sprint",
   "version-string": "0.0.1",
   "description": "SKSE CommonLibSSE-NG Template",
   "homepage": "https://github.com/epinter/skse-clibng-template",
@@ -10,7 +10,8 @@
       "dependencies": [
         "commonlibsse-ng",
         "spdlog",
-        "boost-algorithm"
+        "boost-algorithm",
+        "simpleini"
       ]
     }
   },
