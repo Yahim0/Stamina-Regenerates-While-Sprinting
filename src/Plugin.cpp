@@ -159,7 +159,10 @@ extern "C" DLLEXPORT bool SKSEPlugin_Load(const LoadInterface* skse) {
                     logger::info("Imperious - Races of Skyrim.esp detected.");
                     OblivionSprintHook::hookCompImperious();
                 }
-                OblivionSprintHook::hookCompensates();
+                else {
+                    OblivionSprintHook::hookCompensates();
+                }
+                
             }
         }
     });
