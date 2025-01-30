@@ -73,9 +73,8 @@ class OblivionSprintHook {
     }
 
     static float getEquippedWeightRegen(RE::Actor* actor) {
-        if (actor == nullptr) {
+        if (actor == nullptr)
             return 0;
-        }
         float drain = oldGetSprintStaminaDrain(oldGetEquippedWeight(actor), RE::GetSecondsSinceLastFrame());
         float rate = getRate(actor) * RE::GetSecondsSinceLastFrame();
         logger::info("rate: {}, regenMult: {}, rateMult: {}, drain: {}, wholeDrain: {}", rate, Config::regenMultiplier, rate * Config::regenMultiplier, drain, -rate * Config::regenMultiplier + drain);
@@ -83,27 +82,22 @@ class OblivionSprintHook {
     }
 
     static float getEquippedWeightCompensates(RE::Actor* actor) {
-        if (actor == nullptr) {
+        if (actor == nullptr)
             return 0;
-        }
         float drain = oldGetSprintStaminaDrain(oldGetEquippedWeight(actor), RE::GetSecondsSinceLastFrame());
         float rate = getRate(actor) * RE::GetSecondsSinceLastFrame();
         return std::max(0.0f, -rate * Config::regenMultiplier + drain);
     }
 
     static float getEquippedWeightCompBandB(RE::Actor* actor) {
-        if (actor == nullptr) {
+        if (actor == nullptr)
             return 0;
-        }
-        float drain = 8.0f * RE::GetSecondsSinceLastFrame();
-        float rate = getRate(actor) * RE::GetSecondsSinceLastFrame();
-        return std::max(0.0f, -rate * Config::regenMultiplier + drain);
+        return -std::min(8.0f * RE::GetSecondsSinceLastFrame(), (getRate(actor) * RE::GetSecondsSinceLastFrame()));
     }
 
     static float getEquippedWeightCompImperious(RE::Actor* a) {
-        if (a == nullptr) {
+        if (a == nullptr)
             return 0;
-        }
         float drain = oldGetSprintStaminaDrain(oldGetEquippedWeight(a), RE::GetSecondsSinceLastFrame());
         if (strcmp(RE::PlayerCharacter::GetSingleton()->GetRace()->GetFullName(), "Kahjiit")) {
             drain = drain + 15;
