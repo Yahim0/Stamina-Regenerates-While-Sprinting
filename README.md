@@ -1,4 +1,4 @@
-This mod is built using Epinter's
+### **This mod is built using Epinter's**
 # ***Template Project for SKSE - CommonLibSSE-NG***
 
 ## ***Runtime requirements***
