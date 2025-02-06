@@ -116,20 +116,20 @@ class OblivionSprintHook {
 
 public:
     static void hookRegen() {
-        oldGetEquippedWeight = SKSE::GetTrampoline().write_call<5>(REL::ID(RELOCATION_ID(36994, 38022)).address() + 0xc1, getEquippedWeightRegen);
-        oldGetSprintStaminaDrain = SKSE::GetTrampoline().write_call<5>(REL::ID(RELOCATION_ID(36994, 38022)).address() + 0xc9, getSprintStaminaDrain);
+        oldGetEquippedWeight = SKSE::GetTrampoline().write_call<5>(REL::ID(RELOCATION_ID(36994, 38022)).address() + (REL::Module::IsVR() ? 0x125 : 0xc1), getEquippedWeightRegen);
+        oldGetSprintStaminaDrain = SKSE::GetTrampoline().write_call<5>(REL::ID(RELOCATION_ID(36994, 38022)).address() + (REL::Module::IsVR() ? 0x12D :0xc9), getSprintStaminaDrain);
     }
     static void hookCompensates() {
-        oldGetEquippedWeight = SKSE::GetTrampoline().write_call<5>(REL::ID(RELOCATION_ID(36994, 38022)).address() + 0xc1, getEquippedWeightCompensates);
-        oldGetSprintStaminaDrain = SKSE::GetTrampoline().write_call<5>(REL::ID(RELOCATION_ID(36994, 38022)).address() + 0xc9, getSprintStaminaDrain);
+        oldGetEquippedWeight = SKSE::GetTrampoline().write_call<5>(REL::ID(RELOCATION_ID(36994, 38022)).address() + (REL::Module::IsVR() ? 0x125 : 0xc1), getEquippedWeightCompensates);
+        oldGetSprintStaminaDrain = SKSE::GetTrampoline().write_call<5>(REL::ID(RELOCATION_ID(36994, 38022)).address() + (REL::Module::IsVR() ? 0x12D :0xc9), getSprintStaminaDrain);
     }
     static void hookCompBandB() {
-        oldGetEquippedWeight = SKSE::GetTrampoline().write_call<5>(REL::ID(RELOCATION_ID(36994, 38022)).address() + 0xc1, getEquippedWeightCompBandB);
-        oldGetSprintStaminaDrain = SKSE::GetTrampoline().write_call<5>(REL::ID(RELOCATION_ID(36994, 38022)).address() + 0xc9, getSprintStaminaDrain);
+        oldGetEquippedWeight = SKSE::GetTrampoline().write_call<5>(REL::ID(RELOCATION_ID(36994, 38022)).address() + (REL::Module::IsVR() ? 0x125 : 0xc1), getEquippedWeightCompBandB);
+        oldGetSprintStaminaDrain = SKSE::GetTrampoline().write_call<5>(REL::ID(RELOCATION_ID(36994, 38022)).address() + (REL::Module::IsVR() ? 0x12D :0xc9), getSprintStaminaDrain);
     }
     static void hookCompImperious() {
-        oldGetEquippedWeight = SKSE::GetTrampoline().write_call<5>(REL::ID(RELOCATION_ID(36994, 38022)).address() + 0xc1, getEquippedWeightCompImperious);
-        oldGetSprintStaminaDrain = SKSE::GetTrampoline().write_call<5>(REL::ID(RELOCATION_ID(36994, 38022)).address() + 0xc9, getSprintStaminaDrain);
+        oldGetEquippedWeight = SKSE::GetTrampoline().write_call<5>(REL::ID(RELOCATION_ID(36994, 38022)).address() + (REL::Module::IsVR() ? 0x125 : 0xc1), getEquippedWeightCompImperious);
+        oldGetSprintStaminaDrain = SKSE::GetTrampoline().write_call<5>(REL::ID(RELOCATION_ID(36994, 38022)).address() + (REL::Module::IsVR() ? 0x12D :0xc9), getSprintStaminaDrain);
     }
 };
 
